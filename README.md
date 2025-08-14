@@ -17,8 +17,8 @@ These are characteristic signs that the model does not learn to be robust to its
 
 ---
 
-## Exposure Bias (What it is and why it bites TTS)
-**Exposure bias** arises when a sequence model is trained mostly with teacher forcing: at time step *t*, the decoder conditions on the **ground-truth** frame from time *t-1*. At inference, those ground-truth frames are not available; the model must condition on its **own** previous predictions. If those predictions are slightly off, the errors can compound over time and lead to unstable trajectories and bad outputs, even if teacher-forced loss is low.
+## Exposure Bias 
+**Exposure bias** arises when a sequence model is trained mostly with teacher forcing: at time step *t*, the decoder conditions on the **ground-truth** frame from time *t-1*. At inference, those ground-truth frames are not available; the model must condition on its **own** previous predictions. If those predictions are slightly off, the errors can propogate until the model's predictions become unstable.
 
 **Mitigations used here:**
 1. **Scheduled sampling:** progressively reduce the teacher-forcing ratio, replacing some ground-truth frames with the model’s own predictions during training.
