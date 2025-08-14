@@ -80,26 +80,11 @@ The default schedule is **cosine annealing with a warmup** phase.
 - **Warmup:** the learning rate increases linearly from 0 to the base LR over a set number of steps. This helps stabilize the early stages when gradients can be particularly noisy and magnitudes are not yet calibrated.
 - **Cosine annealing:** after warmup, the learning rate follows a smooth cosine decay.
 - Optionally, **cosine with warm restarts** can be used, which periodically increases the LR to escape local minima.
-
-**Why this over a fixed LR or pure step decay?**
-- Step decay can make abrupt changes that destabilize training for sequence models 
-- Cosine decay follows a smooth curve for learning rate adjustment
-
+  
 **Other options available in code:**
 - `warmup` only: linear warmup followed by a flat LR.
 - `cosine_restarts`: cosine cycles with restarts.
 - `none`: hold LR constant (simplest, but you may need to lower it and train longer).
-
----
-
-## What Else Was Adjusted
-- **Lowercase-only vocabulary** end to end to reduce sparsity and simplify tokenization mismatches.
-- **Masks and shapes** checked throughout: source key padding masks, causal masks for the decoder, and proper length-based masking in losses.
-- **Prenet dropout remains active at inference**, as in many Tacotron-style models, to improve robustness.
-- **Gate bias and stop threshold** exposed via hyperparameters to calibrate early/late stopping.
-- **Dual validation** now makes regression obvious: if TF improves but inference does not, exposure bias is still present.
-
-
 
 ## Conclusion
 The core challenge has been exposure bias: strong teacher-forced training does not automatically translate into robust autoregressive inference. The two-stage regimen, scheduled sampling, and inference-aware validation directly target this gap. AdamW and cosine annealing with warmup provide stable learning rate adjustments model while keeping the codebase simple.
