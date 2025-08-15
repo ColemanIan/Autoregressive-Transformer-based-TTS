@@ -16,12 +16,12 @@ This README explains the problem symptoms, the exposure-bias hypothesis, the two
 ---
 
 ## Symptoms Observed
-- A consistent gap between **teacher-forcing validation loss** and **inference validation loss**. Predictions during teacher forcing look */better/* but the autoregressive inference drifts or collapses quickly if it forms any structure.
+- A consistent gap between **teacher-forcing validation loss** and **inference validation loss**. Predictions during teacher forcing look *better* but the autoregressive inference drifts or collapses quickly if it forms any structure.
 - Stop/gate behavior triggers too late or too early during inference, despite learning under teacher forcing. I think this is more a result of the model being unable to learn the spectrogram construction rather than the mechanism to learn the gate. 
 - PostNet sometimes hides decoder errors in training, producing good-looking mel spectrograms in TF but brittle behavior in inference. This should be fixed with two stage training, or weighting of pre net and post net loss values during stage two training.
 - Improvements made to data preprocessing, masks, and shapes do not close the TF vs inference gap fully. Better than nothing.
 
-These are characteristic signs that the model does not learn to be robust to its */own/* past prediction errors, only to the ground-truth inputs it sees during teacher forcing. I also had been including capital letters in my vocabulary, which possibly destabilized the model during inference because there was not enough training data for capital letters. I switched to lowercase letters only and there seems to be some improvement. 
+These are characteristic signs that the model does not learn to be robust to its *own* past prediction errors, only to the ground-truth inputs it sees during teacher forcing. I also had been including capital letters in my vocabulary, which possibly destabilized the model during inference because there was not enough training data for capital letters. I switched to lowercase letters only and there seems to be some improvement. 
 
 ---
 
