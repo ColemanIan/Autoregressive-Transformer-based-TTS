@@ -4,23 +4,31 @@
 Training this autoregressive Transformer TTS has proven difficult to stabilize. After extensive debugging of data shapes, masking, tokenization, and optimizer settings, the dominant failure mode appears to be **exposure bias**: the model performs well under teacher forcing but degrades when run autoregressively at inference. To mitigate this, the project now uses **two-stage training**, **scheduled sampling**, and a validation protocol that reports both **teacher-forcing** and **inference** losses each epoch.
 
 This README explains the problem symptoms, the exposure-bias hypothesis, the two-stage solution, and the reasoning behind the optimizer and scheduler choices.
+---
+
+## Images for General Reference
+
+
+<img src="./assets/epoch_016.png" alt="Diagram of generated spectrograms to compare against ground truth: Sixteenth epoch. While training and validation loss did both decrease by metric, the model was unable to produce reliable output." width=auto>
+<img src="./assets/epoch_030.png" alt="Diagram of generated spectrograms to compare against ground truth: 30th epoch. While training and validation loss did both decrease by metric, the model was unable to produce reliable output." width=auto>
+<img src="./assets/training_history.png" alt="Diagram of training history to reveal any propogating errors, bias, or other faults. There seems to be some sort of exposure bias." width=auto>
 
 ---
 
 ## Symptoms Observed
-- A consistent gap between **teacher-forcing validation loss** and **inference validation loss**. Predictions during teacher forcing look reasonable, but free-run inference drifts or collapses.
-- Stop/gate behavior triggers too late or too early during inference, despite learning under teacher forcing.
-- PostNet sometimes hides decoder errors in training, producing good-looking mel spectrograms in TF but brittle behavior in inference.
-- Improvements made to data preprocessing, masks, and shapes do not close the TF vs inference gap fully.
+- A consistent gap between **teacher-forcing validation loss** and **inference validation loss**. Predictions during teacher forcing look */better/* but the autoregressive inference drifts or collapses quickly if it forms any structure.
+- Stop/gate behavior triggers too late or too early during inference, despite learning under teacher forcing. I think this is more a result of the model being unable to learn the spectrogram construction rather than the mechanism to learn the gate. 
+- PostNet sometimes hides decoder errors in training, producing good-looking mel spectrograms in TF but brittle behavior in inference. This should be fixed with two stage training, or weighting of pre net and post net loss values during stage two training.
+- Improvements made to data preprocessing, masks, and shapes do not close the TF vs inference gap fully. Better than nothing.
 
-These are characteristic signs that the model does not learn to be robust to its **own** past prediction errors, only to the ground-truth inputs it sees during teacher forcing. I also had been including capital letters in my vocabulary, which possibly destabilized the model during inference because there was not enough training data for capital letters. I switched to lowercase letters only and there seems to be some improvement. 
+These are characteristic signs that the model does not learn to be robust to its */own/* past prediction errors, only to the ground-truth inputs it sees during teacher forcing. I also had been including capital letters in my vocabulary, which possibly destabilized the model during inference because there was not enough training data for capital letters. I switched to lowercase letters only and there seems to be some improvement. 
 
 ---
 
 ## Exposure Bias 
-**Exposure bias** arises when a sequence model is trained mostly with teacher forcing: at time step *t*, the decoder conditions on the **ground-truth** frame from time *t-1*. At inference, those ground-truth frames are not available; the model must condition on its **own** previous predictions. If those predictions are slightly off, the errors can propogate until the model's predictions become unstable.
+**Exposure bias** arises when a sequence model is trained mostly with teacher forcing: at time step *t*, the decoder conditions on the **ground-truth** frame from time *t-1*. At inference, those ground-truth frames are not available (or in this case are a blend of ground truth and predicted frames. Search scheduled sampling for reference); the model must condition on its own previous predictions. If those predictions are slightly off, the errors can propogate until the model's predictions become unstable.
 
-**Mitigations used here:**
+**Mitigations:**
 1. **Scheduled sampling:** progressively reduce the teacher-forcing ratio, replacing some ground-truth frames with the model’s own predictions during training.
 2. **Inference-based validation:** measure a mel loss under real free-run conditions to track whether improvements in TF loss actually translate to inference.
 3. **Two-stage training with PostNet late:** stabilize the core AR mapping first, then allow PostNet to refine spectra after the decoder is competent.
@@ -54,9 +62,10 @@ These are characteristic signs that the model does not learn to be robust to its
 ---
 
 ## Scheduled Sampling
-- The training loop uses a **teacher-forcing ratio** that decays from a higher value (0.9) to a lower value (0.1) across epochs.
-- At time step *t*, with probability `(1 - ratio)`, the previous **model prediction** is fed to the decoder; otherwise the **ground-truth** frame is used. **LINGO:** one column in the spectrogram = one frame. The scheduled sampling is a mix of true frames and predicted frames. 
-- This gradually exposes the model to its own mistakes during training, reducing the teacher-forcing/inference gap.
+- The training loop uses a **teacher-forcing ratio** that decays from a higher value (0.9) to a lower value (0.1) across epochs with a uniform distribution.
+- The "predicted" spectrogram is a blend of the true autoregressive prediction and ground truth spectrogram frames. The idea is that the mode learns to recover from its own bad predictions. This works if teacher forcing successfully encourages some basic structure to be predicted.
+**LINGO:** one column in the spectrogram = one frame. The scheduled sampling is a mix of true frames and predicted frames. 
+
 
 
 ---
@@ -87,4 +96,4 @@ The default schedule is **cosine annealing with a warmup** phase.
 - `none`: hold LR constant (simplest, but you may need to lower it and train longer).
 
 ## Conclusion
-The core challenge has been exposure bias: strong teacher-forced training does not automatically translate into robust autoregressive inference. The two-stage regimen, scheduled sampling, and inference-aware validation directly target this gap. AdamW and cosine annealing with warmup provide stable learning rate adjustments model while keeping the codebase simple.
+The core challenge has been exposure bias: strong teacher-forced training does not automatically translate into robust autoregressive inference. The two-stage regimen, scheduled sampling, and inference-aware validation directly target this gap. AdamW and cosine annealing with warmup provide stable learning rate adjustments model while keeping the codebase simple. From the spectrograms I suspect I may have mishandled a random number generator with a fixed seed value, as the structure of the teacher forced predicted spectrograms seems to predict a lot of column like structures, suggesting it is not learning a mixture of probabilistic frame distributions for prediction/ground truth spectrograms. 

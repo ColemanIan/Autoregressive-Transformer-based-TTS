@@ -1,0 +1,100 @@
+## General purpose .gitignore file  - trying to avoid common naming conventions that people (me) may use. 
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+.python-version
+pip-wheel-metadata/
+
+# Packaging / build
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+
+# Type checking / testing / coverage
+.mypy_cache/
+.pytest_cache/
+.pyre/
+.pytype/
+.tox/
+.coverage
+coverage.xml
+htmlcov/
+
+# Jupyter / notebooks
+.ipynb_checkpoints/
+
+# Logs & temp
+*.log
+logs/
+log/
+tmp/
+temp/
+*.tmp
+*.bak
+*.old
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# ML 
+
+# Checkpoints & weights
+checkpoints/
+ckpts/
+weights/
+models/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+
+# Experiment outputs
+runs/                 # TensorBoard default
+lightning_logs/
+tb_logs/
+wandb/
+mlruns/               # MLflow
+ray_results/
+hydra/
+artifacts/
+results/
+output/
+outputs/
+data/
+datasets/
+
+# Popular speech corpora
+LJSpeech-1.1/
+LibriSpeech/
+LibriTTS/
+VCTK-Corpus/
+mozilla_common_voice/
+
+# Caches
+.cache/
+cached/
+hf_cache/
+huggingface/
+
+
+# Compiled/extension builds (CUDA/C++)
+*.so
+*.dylib
+*.dll
+.ninja_log
+.ninja_deps
+cmake-build-*/
